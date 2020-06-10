@@ -26,6 +26,8 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
       - name: Build with Gradle
         run: ./gradlew clean build --continue
+      - name: Display branch name
+        run: echo running on branch ${GITHUB_REF##*/}
   snapshot_tests:
     name: Test against snapshots
     runs-on: ubuntu-latest
@@ -37,7 +39,7 @@ jobs:
           java-version: '8'
       - name: Snapshop Tests
         run: echo Testing against snapshots
-  sonar:
+  sonar_qube:
     name: Static Code Analysis
     runs-on: ubuntu-latest
     steps:
@@ -50,7 +52,7 @@ jobs:
         run: echo Running Sonarqube static code analysis
   artifacts:
     name: Deploy Artifacts
-    needs: [build, snapshot_tests, sonar]
+    needs: [build, snapshot_tests, sonar_qube]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -62,7 +64,7 @@ jobs:
         run: echo Deploying artifacts
   docs:
     name: Deploy Docs
-    needs: [build, snapshot_tests, sonar]
+    needs: [build, snapshot_tests, sonar_qube]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -74,7 +76,7 @@ jobs:
         run: echo Deploying Docs
   schema:
     name: Deploy Schema
-    needs: [build, snapshot_tests, sonar]
+    needs: [build, snapshot_tests, sonar_qube]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -85,6 +87,8 @@ jobs:
       - name: Deploy Schema
         run: echo Deploying Schema
 
+
+# SKELETON:
 # set up JDK 11
 # set up JDK 12
 # snapshots
