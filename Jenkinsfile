@@ -5,6 +5,7 @@ def projectProperties = [
 ]
 properties(projectProperties)
 
+// This is a Jenkins-specific thing
 def SUCCESS = hudson.model.Result.SUCCESS.toString()
 currentBuild.result = SUCCESS
 
@@ -26,6 +27,7 @@ def jdkEnv(String jdk = 'jdk8') {
 }
 
 try {
+// It seems like Gradle 'build' includes a 'check' step – can this step be omitted from the GH actions version?
 	parallel check: {
 		stage('Check') {
 			node {

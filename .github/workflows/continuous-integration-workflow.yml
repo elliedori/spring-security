@@ -26,8 +26,6 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
       - name: Build with Gradle
         run: ./gradlew clean build --continue
-      - name: Display branch name
-        run: echo running on branch ${BRANCH_NAME}
   snapshot_tests:
     name: Test against snapshots
     runs-on: ubuntu-latest
@@ -50,6 +48,8 @@ jobs:
           java-version: '8'
       - name: Sonar
         run: echo Running Sonarqube static code analysis
+      - name: Display branch name
+        run: echo running on branch ${BRANCH_NAME}
   artifacts:
     name: Deploy Artifacts
     needs: [build, snapshot_tests, sonar_qube]
