@@ -49,7 +49,7 @@ jobs:
       - name: Sonar
         run: echo Running Sonarqube static code analysis
       - name: Display branch name
-        run: echo running on branch ${BRANCH_NAME}
+        run: echo running on branch ${github.event.pull_request.head.ref}
   artifacts:
     name: Deploy Artifacts
     needs: [build, snapshot_tests, sonar_qube]
