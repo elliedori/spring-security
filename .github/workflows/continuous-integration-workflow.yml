@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+#  pull_request:
+    branches:
+      - deploy-pipeline-test
+  schedule:
+    - cron: '0 10 * * *' # Once per day at 10am UTC
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+# eventually add in matrix here
+    steps:
+      - uses: actions/checkout@v2
+      - name: Display branch name
+        run: |
+          echo Running for branch "$BRANCH_NAME"
+          echo test1 ${GITHUB_REF:11}
+          echo test2 ${GITHUB_REF#refs/heads/}
+          echo test3 "${BRANCH_NAME##*/}"
+          echo Dont show this secret "$SECRET_THING"
+          echo This is ok to show "$CAN_EXPOSE"
+          echo Dont show this either "$OTHER_SECRET_THING"
+        env:
+          BRANCH_NAME: ${{ github.ref }}
+          CAN_EXPOSE: "safe to expose!"
+          SECRET_THING: ${{ secrets.SECRET_THING }}
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+      - name: Build with Gradle
+        run: ./gradlew clean build --continue
+  snapshot_tests:
+    name: Test against snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
+      - name: Snapshop Tests
+        run: ./gradlew test -PforceMavenRepositories=snapshot -PspringVersion='5.+' -PreactorVersion=Dysprosium-BUILD-SNAPSHOT -PspringDataVersion=Lovelace-BUILD-SNAPSHOT -PlocksDisabled --stacktrace
+  sonar:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
+      - name: Run Sonar on given branch
+        run: echo "Not on master branch"
+        if: ${{ github.ref != 'refs/heads/master' }}
+#      - name: Run Sonar on master
+#        run: ./gradlew sonarqube -PexcludeProjects='**/samples/**' -Dsonar.host.url="$SONAR_URL" -Dsonar.login="$SONAR_TOKEN" --stacktrace
+#        env:
+#          SONAR_URL: ${{ secrets.SONAR_URL }}
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        if: ${{ github.ref == 'refs/heads/master' }}
+  artifacts:
+    name: Deploy Artifacts
+#    needs: [build, snapshot_tests, sonar]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
+      - name: Sign archives
+        run: |
+          export ORG_GRADLE_PROJECT_signingKey="$TEST_SIGNING_KEY"
+          export ORG_GRADLE_PROJECT_signingPassword="$TEST_SIGNING_PASSWORD"
+          ./gradlew :spring-security-core:signArchives --stacktrace
+        env:
+          TEST_SIGNING_KEY: ${{ secrets.TEST_SIGNING_KEY }}
+          TEST_SIGNING_PASSWORD: ${{ secrets.TEST_SIGNING_PASSWORD }}
+#          Extra comment
+#          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+#          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+  docs:
+    name: Deploy Docs
+    needs: [build, snapshot_tests, sonar]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: Deploy Docs
+        run: echo Deploying Docs
+  schema:
+    name: Deploy Schema
+    needs: [build, snapshot_tests, sonar]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: Deploy Schema
+        run: echo Deploying Schema
+
